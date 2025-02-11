@@ -19,7 +19,7 @@ git --version
 2. **リポジトリをクローン**
 ```powershell
 # Git環境を構築後にリポジトリをクローンする
-git clone https://github.com/BLue-share/mememori-gvg.git
+git clone https://github.com/BLue-share/mememori-globalgvg.git
 ```
 
 3. **コマンドが実行できるか確認**
@@ -62,7 +62,7 @@ Node.jsのインストーラーを実行する
 仮想環境の作成とアクティベート: venv（仮想環境）を作成して、依存関係をインストールします。
 ```powershell
 # Gitからリポジトリをクローン: クローンしたリポジトリのルートディレクトリに移動
-# git clone https://github.com/BLue-share/mememori-gvg.git
+# git clone https://github.com/BLue-share/mememori-globalgvg.git
 cd global_guild_war_status
 
 # 仮想環境の作成
