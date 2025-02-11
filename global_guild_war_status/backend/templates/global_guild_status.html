@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>グラバト状況取得 - 結果</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f5f7;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .form-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .form-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .filter-container label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            width: 200px;
+            transition: 0.3s;
+        }
+
+        select:hover, select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #007bff;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .danger {
+            background-color: rgb(230, 30, 30) !important;
+            color: white !important;
+        }
+
+        .warning {
+            background-color: yellow !important;
+            color: black !important;
+        }
+
+    </style>
+    <script>
+        function saveFilters() {
+            const filters = {
+                castleName: document.getElementById("castleNameFilter").value,
+                guildName: document.getElementById("guildNameFilter").value,
+                attackerName: document.getElementById("attackerNameFilter").value,
+            };
+            localStorage.setItem("filters", JSON.stringify(filters));
+        }
+
+        function restoreFilters() {
+            const savedFilters = JSON.parse(localStorage.getItem("filters"));
+            if (savedFilters) {
+                document.getElementById("castleNameFilter").value = savedFilters.castleName || '';
+                document.getElementById("guildNameFilter").value = savedFilters.guildName || '';
+                document.getElementById("attackerNameFilter").value = savedFilters.attackerName || '';
+            }
+            filterTable();
+        }
+
+        function filterTable() {
+            const rows = document.querySelectorAll("table tbody tr");
+            const castleNameFilter = document.getElementById("castleNameFilter").value.toLowerCase();
+            const guildNameFilter = document.getElementById("guildNameFilter").value.toLowerCase();
+            const attackerNameFilter = document.getElementById("attackerNameFilter").value.toLowerCase();
+
+            rows.forEach(row => {
+                const castleName = row.cells[0].innerText.toLowerCase();
+                const guildName = row.cells[1].innerText.toLowerCase();
+                const attackerName = row.cells[2].innerText.toLowerCase();
+
+                const matchesFilter = 
+                    (castleName.includes(castleNameFilter) || castleNameFilter === '') && 
+                    (guildName.includes(guildNameFilter) || guildNameFilter === '') &&
+                    (attackerName.includes(attackerNameFilter) || attackerNameFilter === '');
+
+                row.style.display = matchesFilter ? '' : 'none';
+            });
+        }
+
+        function setupAutoRefresh() {
+            const now = new Date();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            
+            // 20:45 ～ 21:30 の間は 3秒おきに描画、それ以外は 30分おきに描画
+            if (hour === 20 && minute >= 45 || hour === 21 && minute <= 30) {
+                setInterval(refreshData, 3000); 
+            } else {
+                setInterval(refreshData, 1800000);
+            }
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+
+        function populateFilterOptions() {
+            const castleFilter = document.getElementById("castleNameFilter");
+            const guildFilter = document.getElementById("guildNameFilter");
+            const attackerFilter = document.getElementById("attackerNameFilter");
+
+            const castleNames = [];
+            const guildNames = [];
+            const attackerNames = [];
+
+            {% for castle in castles %}
+                castleNames.push("{{ castle.castle_name }}");
+                guildNames.push("{{ castle.global_guild_name }}");
+                attackerNames.push("{{ castle.attacker_global_guild_name }}");
+            {% endfor %}
+
+            const uniqueCastles = [...new Set(castleNames)];
+            const uniqueGuilds = [...new Set(guildNames)];
+            const uniqueAttackers = [...new Set(attackerNames)];
+
+            function addOptions(select, options) {
+                select.innerHTML = '<option value="">選択なし</option>';
+                options.forEach(value => {
+                    const option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            }
+
+            addOptions(castleFilter, uniqueCastles);
+            addOptions(guildFilter, uniqueGuilds);
+            addOptions(attackerFilter, uniqueAttackers);
+
+            restoreFilters();
+        }
+
+        window.onload = function () {
+            populateFilterOptions();
+            setupAutoRefresh();
+        };
+    </script>
+</head>
+<body>
+    <h1>グラバト状況取得 - 結果</h1>
+
+    <a href="/guild/global_gvg_form/" class="form-button">フォームページに戻る</a>
+
+    <div class="filter-container">
+        <div>
+            <label for="castleNameFilter">城名:</label>
+            <select id="castleNameFilter" onchange="saveFilters(); filterTable();"></select>
+        </div>
+
+        <div>
+            <label for="guildNameFilter">防衛ギルド:</label>
+            <select id="guildNameFilter" onchange="saveFilters(); filterTable();"></select>
+        </div>
+
+        <div>
+            <label for="attackerNameFilter">攻撃ギルド:</label>
+            <select id="attackerNameFilter" onchange="saveFilters(); filterTable();"></select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>城名</th>
+                    <th>防衛ギルド</th>
+                    <th>攻撃ギルド</th>
+                    <th>攻撃PT数</th>
+                    <th>防衛PT数</th>
+                    <th>状態</th>
+                    <th>KO数</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for castle in castles %}
+                <tr class="{% if castle.defense_party_count <= 15 %}danger{% elif castle.defense_party_count <= 60 %}warning{% endif %}">
+                        <td>{{ castle.castle_name }}</td>
+                        <td>{{ castle.global_guild_name }}</td>
+                        <td>{{ castle.attacker_global_guild_name }}</td>
+                        <td>{{ castle.attack_party_count }}</td>
+                        <td>{{ castle.defense_party_count }}</td>
+                        <td>{{ castle.state }}</td>
+                        <td>{{ castle.ko_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
